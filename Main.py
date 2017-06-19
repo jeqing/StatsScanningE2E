@@ -56,13 +56,13 @@ fieldsToSelectList3 = ['response_data_id', 'questionnaire_id', 'create_date', 'r
 # Configs for the variables used for EmailGeneration.py
 errorLogPath = "E:\\Testing\\Scanning E2E\\ErrorLogs"
 subj = 'Scanned Images Error Notification'
-sender = "christina.kim@assurity.co.nz"
+sender = "stats.integration.testing@gmail.com"
 recipients = ["christina.kim@stats.govt.nz", "jeqing@gmail.com", "christina.kim@assurity.co.nz"]
 message = 'There is some data with errors.  Please find the attached files for the details'
 server = "smtp.gmail.com"
 port = 587
-senderUserName = "christina.kim@assurity.co.nz"
-senderPw = "password"
+senderUserName = "stats.integration.testing@gmail.com"
+senderPw = "Stats12345"
 
 
 
