@@ -91,7 +91,7 @@ if __name__ == "__main__":
     
     
     #Wait before checking the DBs
-    time.sleep(300)
+    time.sleep(600)
     
     
     #Check the data bases to see if the loaded test data files were processed as expected
