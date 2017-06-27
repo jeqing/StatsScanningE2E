@@ -11,8 +11,23 @@
 ##################################################################################################################
 
 import subprocess
+import os
+import shutil
+
+#move zip files from the source location to the target location
+def moveFiles(sourceLocation, targetLocation):
+   fileList = os.listdir(sourceLocation)
+   
+   print(fileList)
+   
+   for name in fileList:
+      if name.endswith('zip'):
+         shutil.move(sourceLocation + "\\" + name, targetLocation + "\\" + name)
+   #subprocess.call(command, shell=True)
 
 # Run the given command line
-def encryptFile(command):
+def encryptFile(command, zipFileSourceLocation, zipFileTargetLocation):
    subprocess.call(command, shell=True)
+   moveFiles(zipFileSourceLocation, zipFileTargetLocation)
 
+#moveFiles("C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\Zipped_Files", "C:\\Users\\azl-ckim\\Desktop\\CK\\\E2E_Scanning\\Processed_zipped_files")
