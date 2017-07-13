@@ -17,17 +17,35 @@ import shutil
 #move zip files from the source location to the target location
 def moveFiles(sourceLocation, targetLocation):
    fileList = os.listdir(sourceLocation)
-   
+   print("filelist:")
    print(fileList)
-   
+
    for name in fileList:
-      if name.endswith('zip'):
-         shutil.move(sourceLocation + "\\" + name, targetLocation + "\\" + name)
+      print(name)
+      if (name.endswith("gpg")):
+         print('gpg')
+         shutil.move(sourceLocation + "\\" + name, targetLocation + "current" + "\\" + name)
+      else:
+         if (name.endswith("zip")):
+            print("zip")
+            print(sourceLocation + "\\" + name, targetLocation + "processed" + "\\" + name)
+            shutil.move(sourceLocation + "\\" + name, targetLocation + "processed" + "\\" + name)
    #subprocess.call(command, shell=True)
 
 # Run the given command line
-def encryptFile(command, zipFileSourceLocation, zipFileTargetLocation):
-   subprocess.call(command, shell=True)
-   moveFiles(zipFileSourceLocation, zipFileTargetLocation)
+def encryptFile(sourceFileLocation, targetLocation):
+   fileList = os.listdir(sourceFileLocation)
+   print(fileList)
+   for each in fileList:
+      fullFilePath = sourceFileLocation + each
+      command = 'gpg --encrypt --recipient cp.uat@stats.govt.nz ' + '"' + fullFilePath + '"'
+      subprocess.call(command, shell=True)
+   moveFiles(sourceFileLocation, targetLocation)
 
-#moveFiles("C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\Zipped_Files", "C:\\Users\\azl-ckim\\Desktop\\CK\\\E2E_Scanning\\Processed_zipped_files")
+
+
+#fileToZip = 'C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\Scanning Data Files\\'
+##Encryption.encryptFile(fileToZip,  'C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\Zipped_Files\\processed\\')
+
+#moveFiles(fileToZip, 'C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\Zipped_Files\\processed\\')
+

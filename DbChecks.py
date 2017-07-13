@@ -18,6 +18,9 @@ def connectToDB(server, dataBase):
         return cursor
                         
 
+
+
+
 # check data in DB and populate a csv file with data with errors
 def executeQuery(server, dataBase, tableName, docIdGuidList, fieldToIdentify, fieldToCheckInDB, valuetoCheckAgainst, errorLogLocation, fieldsToSelectList):
         cursor = connectToDB(server, dataBase)

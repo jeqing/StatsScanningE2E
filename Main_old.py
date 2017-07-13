@@ -15,16 +15,11 @@ import CheckSalesForce
 import EmailGeneration
 import Setup
 import time
-import os
 import FileTransfer_CK
-from os.path import basename
-
 
 # Configs for the variables used for Gen_test_files.py
-sampleDataFolder = "C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\sample\\"
 testDataFolder = "C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\Scanning Data Files\\"
-#detailJsonFile = "UPDATE_20170411_10_04_55_214.json"
-#detailJsonFile = "UPDATE_20170630_12_13_22_214.json"
+detailJsonFile = "UPDATE_20170411_10_04_55_214.json"
 folderPrefix = "IFC_UAT"
 
 
@@ -79,32 +74,31 @@ if __name__ == "__main__":
     #Remove test data files used from the previous run
     Setup.removeTestFiles("C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\Scanning Data Files")
     #Where zipped test data files are stored
-    outputFile = 'C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\Zipped_Files\\current\\'
-   
+    outputFile = 'C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\Zipped_Files\\current\\zipped_files_' + ('{:%Y%m%d_%H%M%S}'.format(datetime.datetime.now()))
     gpg_output = 'C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\gpg_files\\'
     #Where files to be zipped are picked up from
-    fileToZip = 'C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\Scanning Data Files\\'
+    fileToZip = 'C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\Scanning Data Files'
 
     #Generate test data files
-    docIdGuidList = Gen_test_files.generateTestFiles(sampleDataFolder, testDataFolder, folderPrefix, 1)
-    ###Zip the generated test data files
-    zippedFile = Zipping.archiveFolder(fileToZip)    
-    
-    Encryption.encryptFile(fileToZip,  "C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\Zipped_Files\\")
-    
-    #FileTransfer_CK.transferFiles()
-    
-    ##Wait before checking the DBs
-    #time.sleep(600)
-    
-    
-    ##Check the data bases to see if the loaded test data files were processed as expected
-    #DbChecks.executeQuery(serverUAT, db1, table1, docIdGuidList, fieldToIdentify1, fieldToCheckInDB1, valuetoCheckAgainst1, errorLogLocation1, fieldsToSelectList1)
-    #DbChecks.executeQuery(serverUAT, db2, table2, docIdGuidList, fieldToIdentify2, fieldToCheckInDB2, valuetoCheckAgainst2, errorLogLocation2, fieldsToSelectList2)
-    #DbChecks.executeQuery(serverUAT, db3, table3, docIdGuidList, fieldToIdentify3, fieldToCheckInDB3, valuetoCheckAgainst3, errorLogLocation3, fieldsToSelectList3)   
-    #CheckSalesForce.checkDataInSalesForce('sunjeet81@gmail.com', 'yorks64&*', 'iKR2pcS09UvwRxMgaPcDjEi8', "SELECT Mark_In__c FROM Response__c WHERE Access_Code__c =", docIdGuidList, errorLogLocation1, ["DocID", "Guid", "MarkIn_Status"])
-    
-    ##Trigger an email with the error log files as an attachement if there was any issue found
-    #EmailGeneration.generateEmailNotifications(errorLogPath, subj, sender, recipients, message, server, port, senderUserName, senderPw)
+    docIdGuidList = Gen_test_files.generateTestFiles(testDataFolder, detailJsonFile, folderPrefix, 1)
+    #Zip the generated test data files
+    Zipping.archiveFolder(outputFile, fileToZip)
 
+    #Encrypt the zipped file
+    gpgEncryptionCommand = 'gpg --encrypt --recipient cp.uat@stats.govt.nz ' + outputFile + '.zip'
+    Encryption.encryptFile(gpgEncryptionCommand, "C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\Zipped_Files\\current", "C:\\Users\\azl-ckim\\Desktop\\CK\\\E2E_Scanning\\Zipped_Files\\processed");
+    FileTransfer_CK.transferFiles()
     
+    
+    #Wait before checking the DBs
+    time.sleep(600)
+    
+    
+    #Check the data bases to see if the loaded test data files were processed as expected
+    DbChecks.executeQuery(serverUAT, db1, table1, docIdGuidList, fieldToIdentify1, fieldToCheckInDB1, valuetoCheckAgainst1, errorLogLocation1, fieldsToSelectList1)
+    DbChecks.executeQuery(serverUAT, db2, table2, docIdGuidList, fieldToIdentify2, fieldToCheckInDB2, valuetoCheckAgainst2, errorLogLocation2, fieldsToSelectList2)
+    DbChecks.executeQuery(serverUAT, db3, table3, docIdGuidList, fieldToIdentify3, fieldToCheckInDB3, valuetoCheckAgainst3, errorLogLocation3, fieldsToSelectList3)    
+    CheckSalesForce.checkDataInSalesForce('sunjeet81@gmail.com', 'yorks64&*', 'iKR2pcS09UvwRxMgaPcDjEi8', "SELECT Mark_In__c FROM Response__c WHERE Access_Code__c =", docIdGuidList, errorLogLocation1, ["DocID", "Guid", "MarkIn_Status"])
+    
+    #Trigger an email with the error log files as an attachement if there was any issue found
+    EmailGeneration.generateEmailNotifications(errorLogPath, subj, sender, recipients, message, server, port, senderUserName, senderPw)    

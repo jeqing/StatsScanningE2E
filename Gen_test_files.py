@@ -14,7 +14,7 @@ import uuid
 import sys
 from glob import glob
 import datetime
-
+import ReplaceDocIds
 
 # Check if a directory or a file exists
 def checkFileExist(fileType, dataFolder, jSonFile = None ):
@@ -44,19 +44,26 @@ def getImages(dataFolder, folderPrefix): # Retrieve all test image folders and e
 def getLastFolderSuffix(folderList, folderPrefix):
     iter = 0
     for folder in folderList:
-        intSuffix = int(folder[len(folderPrefix):len(folder)-1])
+        intSuffix = int(folder[len(folder)-7:len(folder)-1])
         if (intSuffix > iter):
             iter = intSuffix 
     return iter
 
 
-def replaceGUID(itemList, testDataFolder, folderPrefix, i_str, origLine, detailLine, finalJson):
-    docIdGuidList = []
+def replaceGUID(docIdGuidList, currFolder, itemList, sampleDataFolder, testDataFolder, folderPrefix, i_str):
+   
     # For each image
+    detailName = currFolder[8:15]
+    inputJsonFile = sampleDataFolder + detailName + ".json"
+
+    # Read in Detail Json file to memory, remove last closing brace
+    detailJson = open(inputJsonFile,"r")
+    detailLine = detailJson.read()
+    detailJson.close()             
+    
     for item in itemList:
         # Generate new GUID
         newGuidId = uuid.uuid4()
-
 
         newName = str(newGuidId) + item[36:]
         # Rename the image file
@@ -64,51 +71,60 @@ def replaceGUID(itemList, testDataFolder, folderPrefix, i_str, origLine, detailL
 
         oldId = item[0:36]
 
-        # Replace GUID in the folder JSON file
-        newLine = origLine.replace(oldId, str(newGuidId))
-        origLine = newLine
-
-        # Find the form type record for the old GUID from the detail JSON file
+        # Replace GUID in the detail JSON file
         startPos = detailLine.find(oldId)
-        if (startPos == -1):
-            print ("Error: GUID " + oldId + " not found in detail JSON file") 
-            sys.exit(1)
-
-        checkFrom = startPos - 50
-        if (checkFrom < 0):
-            checkFrom = 0
-
-        startPosAll = detailLine.find("{\"form_type\":",checkFrom)
-        startPosFin =  detailLine.find("{\"form_type\":",startPos)
-        if startPosFin == -1:
-            startPosFin = len(detailLine)
-
-        relText = detailLine[startPosAll:startPosFin-1]
-        relText2 = relText.replace(oldId, str(newGuidId))
         
-        docIdPos = relText2.find("document_id")
-        docId = relText[docIdPos+14: docIdPos+22]
-        
+        newLine = detailLine.replace(oldId, str(newGuidId))
 
-        finalJson2 = finalJson + "," + relText2
-        finalJson = finalJson2 
+
+        submittedPos = newLine.find("\"submitted_date_time\":",startPos)
+        if (submittedPos == -1):
+            print ("Error: Submitted date time field not found in detail JSON file") 
+            sys.exit(1)        
         
+        validationPos = detailLine.find("\"validation_status\":",startPos)
+        if (validationPos == -1):
+            print ("Error: Validation Status field not found in detail JSON file") 
+            sys.exit(1)                
+        
+        jsonDateStamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+        print (jsonDateStamp)
+        
+        newLine = detailLine[0:submittedPos+23] + jsonDateStamp + detailLine[validationPos-2:]
+        detailLine = newLine
+        
+        docIdPos = detailLine.find("document_id",startPos)
+        oldDocId = detailLine[docIdPos+14: docIdPos+23]
+        
+        #detailLine = detailLine.replace(oldDocId, "12345")
+        #detailLine = detailLine.replace("613948850", "12345")
+        
+        
+        oldDocIDs = ["642124311", "613948850"]
+        newDocIDs = ["000", "111"]
+        i = 0
+        while (i < len(oldDocIDs)):
+            detailLine = detailLine.replace(oldDocIDs[i], newDocIDs[i])        
+            docIdGuidList.append((newDocIDs[i], str(newGuidId)))
+            i += 1
   
-        docIdGuidList.append((docId, str(newGuidId)))
+        
+              
+    
+    outputJsonFile = 'UPDATE_'+ detailName + "_" + datetime.datetime.now().strftime('%Y%m%d_%H_%M_%S_214') + '.json'
+    finalJson = open(testDataFolder + outputJsonFile,"w")
+    finalJson.write(detailLine)
+    finalJson.close()       
         
     
-    return origLine, finalJson, docIdGuidList
+    return docIdGuidList        
+
+      
     
-
-def duplicateProcess(detailJsonFile, numberOfDuplicates, folderList, iter, testDataFolder, folderPrefix, outputJsonFile):
-    # Read in Detail Json file to memory, remove last closing brace
-    detailJson = open(detailJsonFile,"r")
-    detailLine = detailJson.read()
-    detailJson.close()
-    lenOrig = len(detailLine)
-    finalJson = detailLine[:lenOrig-1]
-
-
+    
+def duplicateProcess(numberOfDuplicates, folderList, iter, sampleDataFolder, testDataFolder, folderPrefix):
+   
+    docIdGuidList = []
     # For number of test duplicates
     for i in range(numberOfDuplicates):
         # For each test image folder
@@ -116,21 +132,9 @@ def duplicateProcess(detailJsonFile, numberOfDuplicates, folderList, iter, testD
             # Increment the folder suffix
             iter = iter + 1
             i_str = str(iter).strip()
-
+            
             # Copy the image folder to the new folder
-            shutil.copytree(testDataFolder + folderList[j], testDataFolder + folderPrefix + i_str)
-
-            # Get current test folder removing the trailing folder separator '\'
-            currFolderTmp = folderList[j]
-            currFolder = currFolderTmp[:len(currFolderTmp)-1]
-
-            # Read in the folder JSON file
-            json = open(testDataFolder + folderPrefix + i_str + "\\" + currFolder + ".json","r")
-            origLine = json.read()
-            json.close()
-
-            # Remove the folder JSON file
-            os.remove(testDataFolder + folderPrefix + i_str + "\\" + currFolder + ".json")
+            shutil.copytree(sampleDataFolder + folderList[j], testDataFolder + folderPrefix + i_str)
 
             imageFolderList = os.listdir(testDataFolder + folderPrefix + i_str)
             itemList = []
@@ -139,28 +143,16 @@ def duplicateProcess(detailJsonFile, numberOfDuplicates, folderList, iter, testD
             for file in imageFolderList:
                 if file.find(".tif") > 0:
                     itemList.append(file)
-
+                    
+            currFolder = folderList[j]
             
-            origLine, finalJson, docIdGuidList = replaceGUID(itemList, testDataFolder, folderPrefix, i_str, origLine, detailLine, finalJson)
-            
-            
-            
-            newJson = open(testDataFolder + folderPrefix + i_str + "\\" + folderPrefix + i_str + ".json","w")
-            newJson.write(origLine)
-            newJson.close()
-
-    finalJson2 = finalJson + "]"
-    finalJson = finalJson2
-
-    newFinalJson = open(testDataFolder + outputJsonFile,"w")
-    newFinalJson.write(finalJson)
-    newFinalJson.close()    
-
+            docIdGuidList = replaceGUID(docIdGuidList, currFolder,itemList, sampleDataFolder, testDataFolder, folderPrefix, i_str)
+    
     return docIdGuidList
     
     
 
-def generateTestFiles(testDataFolder, detailJsonFile, folderPrefix, numberOfDuplicates):
+def generateTestFiles(sampleDataFolder, testDataFolder, folderPrefix, numberOfDuplicates):
 # Modify below parameters for testing
 # Escape \ characters in paths with a leading \
     #testDataFolder = "C:\\Users\\azl-ckim\\Desktop\\CK\\E2E_Scanning\\Scanning Data Files\\"
@@ -168,14 +160,16 @@ def generateTestFiles(testDataFolder, detailJsonFile, folderPrefix, numberOfDupl
     #folderPrefix = "IFC_UAT"
 
     #numberOfDuplicates = 1
-    outputJsonFile = 'UPDATE_'+ datetime.datetime.now().strftime('%Y%m%d_%H_%M_%S_214') + '.json'
-
-    checkFileExist('dir', testDataFolder, )
-    checkFileExist('file', testDataFolder, detailJsonFile)
     
-    folderList = getImages(testDataFolder, folderPrefix)
+
+    checkFileExist('dir', sampleDataFolder, )
+    #checkFileExist('file', sampleDataFolder, detailJsonFile)
+    
+    folderList = getImages(sampleDataFolder, folderPrefix)
 
     iter = getLastFolderSuffix(folderList, folderPrefix)
-    docIdGuidList = duplicateProcess(detailJsonFile, numberOfDuplicates, folderList, iter, testDataFolder, folderPrefix, outputJsonFile)
+    
+    docIdGuidList = duplicateProcess(numberOfDuplicates, folderList, iter, sampleDataFolder, testDataFolder, folderPrefix)
     print(docIdGuidList)
+    
     return docIdGuidList
