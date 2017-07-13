@@ -14,7 +14,7 @@ import uuid
 import sys
 from glob import glob
 import datetime
-import ReplaceDocIds
+#import ReplaceDocIds
 
 # Check if a directory or a file exists
 def checkFileExist(fileType, dataFolder, jSonFile = None ):
