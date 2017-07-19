@@ -39,6 +39,7 @@ def executeQuery(server, dataBase, tableName, docIdGuidList, fieldToIdentify, fi
                 print("response_data_PublicReport_v")
                 for docIdGuidTuple in docIdGuidList:  
                         queryToFindData = "select " + fieldsToSelectString + " from " + tableName +" where " + fieldToIdentify + "=" + "'" + docIdGuidTuple[indexToCheckInDocIdGuidList] + "'"  
+                        print(queryToFindData)
                         cursor.execute(queryToFindData)
                         if (cursor.rowcount == 0):  # No data found with given docId/ Guid
                                 notFoundDataList.append(docIdGuidTuple)
@@ -47,6 +48,7 @@ def executeQuery(server, dataBase, tableName, docIdGuidList, fieldToIdentify, fi
                         print("response_image_PublicReport_v")
                         for docIdGuidTuple in docIdGuidList:  
                                 queryToFindData = "select " + fieldsToSelectString + " from " + tableName +" where " + fieldToIdentify + "=" + "'" + docIdGuidTuple[indexToCheckInDocIdGuidList] + "'"  
+                                print(queryToFindData)
                                 cursor.execute(queryToFindData)
                                 query = None                                
                                 if (cursor.rowcount == 0):  # No data found with given docId/ Guid
@@ -61,7 +63,8 @@ def executeQuery(server, dataBase, tableName, docIdGuidList, fieldToIdentify, fi
                 else: # tableNameToList[2]  == "CensusMarkinStatus"
                         print("CensusMarkinStatus")
                         for docIdGuidTuple in docIdGuidList:  
-                                queryToFindData = "select " + fieldsToSelectString + " from " + tableName +" where " + fieldToIdentify + "=" + "'" + docIdGuidTuple[indexToCheckInDocIdGuidList] + "'"  
+                                queryToFindData = "select " + fieldsToSelectString + " from " + tableName +" where " + fieldToIdentify + "=" + "'" + docIdGuidTuple[indexToCheckInDocIdGuidList] + "'" +  " and responseModeCode = 'Paper'"  
+                                print(queryToFindData)
                                 cursor.execute(queryToFindData)
                                 query = None                                
                                 if (cursor.rowcount == 0):  # No data found with given docId/ Guid
@@ -80,7 +83,7 @@ def executeQuery(server, dataBase, tableName, docIdGuidList, fieldToIdentify, fi
         cursor.close()
         
         #Generated error log files if there is any data which has not been loaded in the DB as expected
-        if (notFoundDataSet != None or fetchedResultList != []):
+        if (notFoundDataSet != None and fetchedResultList != []):
                 ErrorLogging.generateErrorLog(notFoundDataSet, fetchedResultList, tableName, errorLogLocation, fieldsToSelectList)
 
                          

@@ -68,405 +68,14 @@ class Logger:
         mail.quit()
 
 
-class WebEntry:
-    def __init__(self, log):
-        self.browser = webdriver.Firefox()
-        self.log = log
-
-    def navigate(self, site):
-        try:
-            self.log.writeToLog("Navigating to site: " + str(site))
-            self.browser.get(site)
-        except Exception as e:
-            self.log.writeToLog("Exception navigating to site: " + str(e))
-            self.log.closeLog()
-            sys.exit(9)
-
-    def isFieldHidden(self, id):
-
-        try:
-            result = self.browser.find_element_by_id(id).get_attribute("data-hidden")
-            if (result == "false"):
-                return False
-            else:
-                return True
-        except Exception as e:
-            self.log.writeToLog("Exception checking data hidden attribute of element: " + str(e))
-            #self.log.closeLog()
-            #sys.exit(9)
-
-    # Function to check page has loaded through presence of page element
-    # Has a timeout also
-    def pageLoad(self, sleepTimeSec, timeOutSec, xpathcommand):
-
-        self.log.writeToLog("Waiting for xpath command: " + str(xpathcommand))
-        i = 0
-        time.sleep(1)
-        while True:
-            try:
-                check = self.browser.find_elements_by_xpath(xpathcommand)
-            except:
-                check = []
-            if (len(check) > 0):
-                return 0
-            i += 1
-            time.sleep(sleepTimeSec)
-            if (i > (timeOutSec/sleepTimeSec)):
-                return 9
-
-    # Function to add a person to the dwelling summary form
-    def addPerson(self, personNo, firstNameStr, surnameStr, ageStr, relationshipStr):
-
-        try:
-            self.log.writeToLog("Adding person to summary: " + str(firstNameStr) + ", " + str(surnameStr))
-            if (personNo > 1):
-                
-                addperson = self.browser.find_element_by_xpath('//button[text() = "Add Person"]')
-                addperson.click()
-                time.sleep(2)
-            
-            firstname = self.browser.find_elements_by_xpath('//label/span[text() = "first names"]/../input')[personNo-1]
-            firstname.send_keys(firstNameStr)
-
-            surname = self.browser.find_elements_by_xpath('//label/span[text() = "family name"]/../input')[personNo-1]
-            surname.send_keys(surnameStr)
-
-            age = self.browser.find_elements_by_xpath('//numeric-age-field/fieldset[@id="fieldwrapper-age"]/div/input')[personNo-1]
-            age.send_keys(ageStr)
-
-            if (personNo > 1):
-                relationship = Select(self.browser.find_elements_by_xpath('//dropdown-field/fieldset[@id = "fieldwrapper-relationship"]/div/select')[personNo-1])
-                relationship.select_by_visible_text(relationshipStr)
-        except Exception as e:
-            self.log.writeToLog("Exception adding persion " + str(e))
-            self.log.closeLog()
-            sys.exit(9)
-            
-
-    def clickElement(self, id, exactMatch, text):
-
-        try:
-            self.log.writeToLog("Click element with fieldset id: " + str(id) + ", Exact match text: " + str(exactMatch) + " Text: " + text)
-            xpathStr = "//fieldset[@id = \"" + id + "\"]/div/label/span"
-            if (exactMatch):
-                xpathStr = xpathStr + "[text()=\"" + text + "\"]/../input"
-            else:
-                xpathStr = xpathStr + "[contains(text(),\"" + text + "\")]/../input"
-            
-            control = self.browser.find_element_by_xpath(xpathStr)
-            control.click()
-        except Exception as e:
-            self.log.writeToLog("Exception clicking element: " + str(e))
-            #self.log.closeLog()
-            #sys.exit(9)
-
-
-    def clickElementByValue(self, id, text):
-        try:
-            self.log.writeToLog("Click element with fieldset id: " + str(id) + ", with value of: " + text)
-            xpathStr = "//fieldset[@id = \"" + id + "\"]/div/div/label/input[@value=\"" + text + "\"]"
-        
-            control = self.browser.find_element_by_xpath(xpathStr)
-            control.click()
-        except Exception as e:
-            self.log.writeToLog("Exception clicking element with value field: " + str(e))
-            #self.log.closeLog()
-            #sys.exit(9)
-
-
-    def clickButtonText(self, text):
-
-        try:
-            self.log.writeToLog("Clicking Button with text: " + text)
-            xpathStr = "//button[text() = \"" + text + "\"]"
-            control = self.browser.find_element_by_xpath(xpathStr)
-            control.click()
-        except Exception as e:
-            self.log.writeToLog("Exception clicking button text: " + str(e))
-            self.log.closeLog()
-            sys.exit(9)
-
-    def clickButtonId(self, id):
-
-        try:
-            self.log.writeToLog("Clicking Button with id: " + id)
-            control = self.browser.find_element_by_id(id)
-            control.click()
-        except Exception as e:
-            self.log.writeToLog("Exception clicking button id: " + str(e))
-            self.log.closeLog()
-            sys.exit(9)
-
-
-    def clickDwellBtn(self, id, text):
-
-        try:    
-            self.log.writeToLog("Clicking dwelling button fieldset id: " + str(id) + ", Text: " + text)
-            xpathStr = "//fieldset[@id = \"" + id + "\"]/div/button[text() = \"" + text + "\"]"
-            control = self.browser.find_element_by_xpath(xpathStr)
-            control.click()
-        except Exception as e:
-            self.log.writeToLog("Exception clicking dwelling button: " + str(e))
-            self.log.closeLog()
-            sys.exit(9)
-
-    def sendText(self, id, text):
-
-        try:
-            self.log.writeToLog("Sending text to fieldset id: " + str(id) + ", Text: " + text)
-            xpathStr = "//fieldset[@id = \"" + id + "\"]/div/input"
-            control = self.browser.find_element_by_xpath(xpathStr)
-            control.send_keys(text)
-        except Exception as e:
-            self.log.writeToLog("Exception sending text to field: " + str(e))
-            #self.log.closeLog()
-            #sys.exit(9)
-        
-
-    def sendTextToElement(self,id,text):
-
-        try:
-            self.log.writeToLog("Sending text to element id: " + str(id) + ", Text: " + text)
-            self.browser.find_element_by_id(id).send_keys(text)
-        except Exception as e:
-            self.log.writeToLog("Exception sending text to element: " + str(e))
-            #self.log.closeLog()
-            #sys.exit(9)
-
-    def enterAccessCode(self, accessCode):
-
-        # Wait for access code page to be present
-        ret = self.pageLoad(5,30,'//div/label[contains(text(),"Enter your access code")]')
-
-        if (ret == 9):
-            self.log.writeToLog("Error: Enter access code screen not present")
-            self.log.closeLog()
-            sys.exit(9)
-
-        self.log.writeToLog("Entering access code: " + str(accessCode))
-        self.sendTextToElement("Form_UniqueCodeForm_uniqueCode_0",accessCode[0:3])
-        self.sendTextToElement("Form_UniqueCodeForm_uniqueCode_1",accessCode[3:6])
-        self.sendTextToElement("Form_UniqueCodeForm_uniqueCode_2",accessCode[6:9])
-        self.sendTextToElement("Form_UniqueCodeForm_uniqueCode_3",accessCode[9:12])
-        time.sleep(1)
-
-        # Click Start button
-        self.clickButtonId("Form_UniqueCodeForm_action_doValidateCode")
-
-    def checkCleanResponse(self):
-        
-        # Wait for next page to be present
-        ret = self.pageLoad(5,30,'//div/h1[contains(text(),"Set up your household")]')
-        if (ret == 9):
-            self.log.writeToLog("Note: Set-up household screen not present - trying next access Code")
-        else:
-            checkAddressAssignHidden = self.isFieldHidden("fieldwrapper-census_night_address_confirm")
-            if (checkAddressAssignHidden == True):
-                log.writeToLog("Note: Pre-allocated address not present - trying next access code")
-                return False
-            else:
-                return True
-
-    def enterHouseholdSummary(self):
-
-        self.clickElement("fieldwrapper-census_night_address_confirm",True,"yes")
-
-        # Add person
-        self.addPerson(1, "John Norman", "Smith", 37, "")
-        self.addPerson(2, "Sarah Kim", "Smith", 37, "wife, husband, partner or de facto")
-        self.addPerson(3, "Katie Mackenzie", "Smith", 9, "son or daughter")
-        self.addPerson(4, "Hannah Sophie", "Smith", 6, "son or daughter")
-        self.addPerson(5, "Michael Flynn", "Smith", 3, "son or daughter")
-        self.clickElement("fieldwrapper-any_visitors",True,"no")
-        self.clickElement("fieldwrapper-any_away",True,"no")
-        self.clickButtonText("Continue")
-
-
-        # Wait for next page to be present
-        ret = self.pageLoad(5,30,'//div/p[contains(text(),"Please double check everything is correct")]')
-        if (ret == 9):
-            self.log.writeToLog("Error: Confirmation screen not present")
-            self.log.closeLog()
-            sys.exit(9)
-
-        self.clickButtonText("Submit")
-
-        # Wait for next page to be present
-        ret = self.pageLoad(5,30,'//div/h2[contains(text(),"Household Summary for")]')
-
-        if (ret == 9):
-            self.log.writeToLog("Error: Household summary screen not present")
-            self.log.closeLog()
-            sys.exit(9)
-
-    def startDwellingForm(self):
-        
-        dwellingBtn = self.browser.find_element_by_xpath('//tr[@class = "dwelling"]/td/button[text() = "Start Form"]')
-        dwellingBtn.click()
-
-        # Wait for next page to be present
-        ret = self.pageLoad(5,30,'//fieldset[@id = "fieldwrapper-dwelling_description"]')
-        if (ret == 9):
-            self.log.writeToLog("Error: Dwelling Section 1 Form not present")
-            self.log.closeLog()
-            sys.exit(9)
-
-    def enterDwellFormPage1(self):
-                
-        self.clickElement("fieldwrapper-dwelling_description_predefined", True, "house")
-        self.clickElement("fieldwrapper-joined", True, "no")
-        self.clickElement("fieldwrapper-storeys", False, "one storey")
-        self.clickElement("fieldwrapper-own_dwelling", False, "own or partly own this dwelling")
-        self.clickElement("fieldwrapper-mortgage_payments", True, "no")
-        self.clickButtonText("Continue")
-                
-        # Wait for next page to be present
-        ret = self.pageLoad(5,30,'//fieldset[@id = "fieldwrapper-rooms"]')
-        if (ret == 9):
-            self.log.writeToLog("Error: Dwelling Section 2 Form not present")
-            self.log.closeLog()
-            sys.exit(9)
-
-    def enterDwellFormPage2(self):
-        self.clickDwellBtn("fieldwrapper-room_kitchen","+")
-        self.clickDwellBtn("fieldwrapper-room_living","+")
-        self.clickDwellBtn("fieldwrapper-room_dining","+")
-        self.clickDwellBtn("fieldwrapper-room_bedroom","+")
-        self.clickDwellBtn("fieldwrapper-room_conservatory","+")
-        self.clickDwellBtn("fieldwrapper-room_study","+")
-        self.clickElement("fieldwrapper-heating_predefined",False,"fixed gas heater")
-        self.clickElement("fieldwrapper-telecommunications",False,"Internet access")
-        self.clickElement("fieldwrapper-vehicle_num",True,"two")
-        self.clickElement("fieldwrapper-dwelling_damp",True,"no")
-        self.clickElement("fieldwrapper-mould",True,"yes - sometimes")
-        self.clickElement("fieldwrapper-amenities",False,"kitchen sink")
-        self.clickElement("fieldwrapper-declaration",False,"Yes, I declare")
-        self.clickButtonText("Submit")
-                
-        # Wait for next page to be present
-        ret = self.pageLoad(5,30,'//div/h2[contains(text(),"Household Summary for")]')
-
-        if (ret == 9):
-            self.log.writeToLog("Error: Household summary screen not present")
-            self.log.closeLog()
-            sys.exit(9)
-
-
-    def startPersonForm(self):
-        
-        personBtn = self.browser.find_element_by_xpath('//tr[@class = "person person-type-Resident"]/td/button[text() = "Start Form"]')
-        personBtn.click()
-                
-        # Wait for next page to be present
-        ret = self.pageLoad(5,30,'//fieldset[@id = "fieldwrapper-hsp_confirm_name"]')
-        if (ret == 9):
-            self.log.writeToLog("Error: Person Section 1 Form not present")
-            self.log.closeLog()
-            sys.exit(9)
-
-    def enterPersonFormPage1(self):
-        
-        self.clickElement("fieldwrapper-hsp_confirm_name",True,"yes")
-        self.sendText("fieldwrapper-dob_day","01")
-        self.sendText("fieldwrapper-dob_month","01")
-        self.sendText("fieldwrapper-dob_year","1978")
-        self.clickElement("fieldwrapper-sex",True,"male")
-        self.clickElement("fieldwrapper-ur_confirm_address",True,"yes")
-        self.sendText("fieldwrapper-years_at_ur_address_text","2")
-        self.clickElement("fieldwrapper-ethnicity_predefined",False,"New Zealand")
-        self.clickElement("fieldwrapper-country_birth_predefined",True,"New Zealand")
-        self.clickButtonText("Continue")
-
-        # Wait for next page to be present
-        ret = self.pageLoad(5,30,'//fieldset[@id = "fieldwrapper-maori_descent"]')
-        if (ret == 9):
-            self.log.writeToLog("Error: Person Section 2 Form not present")
-            self.log.closeLog()
-            sys.exit(9)
-
-
-    def enterPersonFormPage2(self):
-
-        self.clickElement("fieldwrapper-maori_descent",True,"no")
-        #Special case
-        self.clickElementByValue("fieldwrapper-address_predefined","ur_address")
-        self.clickElement("fieldwrapper-languages",True,"English")
-        self.clickElement("fieldwrapper-religion_predefined",True,"Christianity")
-        self.sendText("fieldwrapper-religion_denomination","Catholic")
-        self.clickElement("fieldwrapper-live_with_predefined",False,"my wife or husband")
-        self.clickElement("fieldwrapper-study",False,"no")
-        self.clickElement("fieldwrapper-difficulty_seeing",False,"no")
-        self.clickElement("fieldwrapper-difficulty_hearing",False,"no")
-        self.clickElement("fieldwrapper-difficulty_walking",False,"no")
-        self.clickElement("fieldwrapper-difficulty_remembering",False,"no")
-        self.clickElement("fieldwrapper-difficulty_washing",False,"no")
-        self.clickElement("fieldwrapper-difficulty_communicating",False,"no")
-        self.clickButtonText("Continue")
-
-        # Wait for next page to be present
-        ret = self.pageLoad(5,30,'//fieldset[@id = "fieldwrapper-smoking"]')
-        if (ret == 9):
-            self.log.writeToLog("Error: Person Section 3 Form not present")
-            self.log.closeLog()
-            sys.exit(9)
-
-
-    def enterPersonFormPage3(self):
-
-        self.clickElement("fieldwrapper-smoking",True,"no")
-        self.clickElement("fieldwrapper-used_to_smoke",True,"no")
-        self.clickElement("fieldwrapper-legal_marital_status",False,"I am legally married")
-        self.clickElement("fieldwrapper-own_dwelling",False,"own or partly own it")
-        self.clickElement("fieldwrapper-highest_school_qualification_predefined",False,"NZ Higher School Certificate")
-        self.clickElement("fieldwrapper-other_completed_qualification",True,"yes")
-        self.clickElement("fieldwrapper-highest_qualification_predefined",False,"Bachelor Degree")
-        self.sendText("fieldwrapper-highest_qualification_subject","Statistics")
-        self.clickElement("fieldwrapper-highest_qualification_location",True,"New Zealand")
-        self.clickElement("fieldwrapper-income_source",False,"wages")
-        self.clickElement("fieldwrapper-total_personal_income",False,"$70,001")
-        self.clickButtonText("Continue")
-
-        # Wait for next page to be present
-        ret = self.pageLoad(5,30,'//fieldset[@id = "fieldwrapper-work_in_ref_week"]')
-        if (ret == 9):
-            self.log.writeToLog("Error: Person Section 4 Form not present")
-            self.log.closeLog()
-            sys.exit(9)
-
-
-    def enterPersonFormPage4(self):
-
-        self.clickElement("fieldwrapper-work_in_ref_week",False,"I worked for pay")
-        self.sendText("fieldwrapper-hours_worked","40")
-        self.clickElement("fieldwrapper-employment_status",False,"a paid employee")
-        self.sendText("fieldwrapper-occupation","Labourer")
-        self.sendText("fieldwrapper-business_name","Jo's labourers")
-        self.sendText("fieldwrapper-business_main_activity","Labour Hire")
-        self.clickElement("fieldwrapper-work_place_address",False,"work away from home")
-        self.sendText("fieldwrapper-work_place_address_text","120 Hereford St, Christchurch")
-        self.clickElement("fieldwrapper-travel_to_work",False,"drive a private car")
-        self.clickElement("fieldwrapper-unpaid_activities",False,"looked after a child who is a member")
-        self.sendText("fieldwrapper-phone_number","0271234567")
-        self.clickElement("fieldwrapper-declaration",False,"Yes, I declare")
-        self.clickButtonText("Submit")
-
-        # Wait for next page to be present
-        ret = self.pageLoad(5,30,'//div/h2[contains(text(),"Household Summary for")]')
-
-        if (ret == 9):
-            self.log.writeToLog("Error: Household summary screen not present")
-            self.log.closeLog()
-            sys.exit(9)
-    
-
-    def closeBrowser(self):
-        self.browser.quit()
 
 class SalesForceAPI:
     def __init__(self, log):
         self.log = log
-        self.sf = Salesforce(username='ben.schluter@stats.govt.nz.regression', password='sophie22',
-                security_token='XFBTDkhKpVxNXBZ4na81RHxS', sandbox=True)
+        #self.sf = Salesforce(username='ben.schluter@stats.govt.nz.regression', password='sophie22',
+                #security_token='XFBTDkhKpVxNXBZ4na81RHxS', sandbox=True)
+        self.sf = Salesforce(username='christina.kim@stats.govt.nz', password='Stats12345',
+                             security_token='bbNLLmm82AkIjL93evgIztuQ', sandbox=True)        
 
 
     def getDacRecords(self):
@@ -511,7 +120,7 @@ class SalesForceAPI:
         return (respQuery['records'])
     
 
-    def checkValidResponse(self, respRecords):
+    def checkValidResponse(self, respRecords,dacAccessCode):
 
         noRespRecords = len(respRecords)
 
@@ -747,55 +356,50 @@ def replaceDocIDs():
 
     log = Logger("ICS_selenium_log",outputLog)
     sf = SalesForceAPI(log)
-    webEntry = WebEntry(log)
+    webEntry = ''
 
     # Retrieve 2000 records from the DAC store for Access codes
     dacRecords = sf.getDacRecords()
     iter = 0
     ocIDList = []
+    newDocIdList = []
     
-    dacAccessCode = ""
 
     # Go through the DAC codes randomly, finding one which has not been used for ICS or scanning
-    while (True):
-        iter = iter + 1
-        log.writeToLog("Using DAC store entry number: " + str(iter))
-        # Give up if we haven't found one within the first 2000
-        if (iter > 2000):
-            log.writeToLog("Can't find a valid access code - giving up")
-            log.closeLog()
-            sys.exit(9)
-        # Select a random code
-        i = random.randint(0, len(dacRecords) - 1)
-
-        responseId = dacRecords[i]['Response__c']
-        dacAccessCode = dacRecords[i]['Access_Code__c']
-        log.writeToLog("DAC Store - Response Id: " + str(responseId) + ", Access Code: " + str(dacAccessCode))
-        
-        # Retrieve the response data from SF for this access code
-        respRecords = sf.getResponse(responseId)
-
-        isValidResponse = sf.checkValidResponse(respRecords)
-        # Check it has not been used
-        if (isValidResponse):
-
-            log.writeToLog("Opening ICS site")
-            # Open up browser
-            webEntry.navigate("https://onlinecensus-uat.cwp.govt.nz/census-test/landing/")
-            webEntry.enterAccessCode(dacAccessCode)
-
-            isCleanResponse = webEntry.checkCleanResponse()
-
-            if (isCleanResponse):
-                docIDList.append(dacAccessCode)
-                log.writeToLog("Access Code is a valid free one to use - proceeding")
+    while (len(newDocIdList) < 2):
+        while (True):
+            iter = iter + 1
+            log.writeToLog("Using DAC store entry number: " + str(iter))
+            # Give up if we haven't found one within the first 2000
+            if (iter > 2000):
+                log.writeToLog("Can't find a valid access code - giving up")
+                log.closeLog()
+                sys.exit(9)
+            # Select a random code
+            i = random.randint(0, len(dacRecords) - 1)
+    
+            responseId = dacRecords[i]['Response__c']
+            dacAccessCode = dacRecords[i]['Access_Code__c']
+            log.writeToLog("DAC Store - Response Id: " + str(responseId) + ", Access Code: " + str(dacAccessCode))
+            
+            # Retrieve the response data from SF for this access code
+            respRecords = sf.getResponse(responseId)
+    
+            isValidResponse = sf.checkValidResponse(respRecords,dacAccessCode)
+            # Check it has not been used
+            if (isValidResponse):
+                newDocIdList.append(dacAccessCode)
                 break
+    print("newDocIdList: ")
+    print(newDocIdList)
+    newDocIdList[0] = newDocIdList[0][:len(newDocIdList[0]) - 3]
+    newDocIdList[1] = newDocIdList[1][:len(newDocIdList[1]) - 3]
+    
+  
+    return newDocIdList
 
-    sys.exit(0)    
-    return docIDList
-
-dacAccessCode = ""
-print(replaceDocIDs())
+#docID = replaceDocIDs()
+#print(docID)
             
             
             

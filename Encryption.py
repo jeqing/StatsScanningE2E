@@ -17,9 +17,6 @@ import shutil
 #move zip files from the source location to the target location
 def moveFiles(sourceLocation, targetLocation):
    fileList = os.listdir(sourceLocation)
-   print("filelist:")
-   print(fileList)
-
    for name in fileList:
       print(name)
       if (name.endswith("gpg")):
@@ -35,11 +32,14 @@ def moveFiles(sourceLocation, targetLocation):
 # Run the given command line
 def encryptFile(sourceFileLocation, targetLocation):
    fileList = os.listdir(sourceFileLocation)
+   print("filelist to encrypt:")
    print(fileList)
    for each in fileList:
       fullFilePath = sourceFileLocation + each
-      command = 'gpg --encrypt --recipient cp.uat@stats.govt.nz ' + '"' + fullFilePath + '"'
-      subprocess.call(command, shell=True)
+      print("fullFilePath: " + fullFilePath)
+      if (os.path.isfile(fullFilePath)):
+         command = 'gpg --encrypt --recipient cp.uat@stats.govt.nz ' + '"' + fullFilePath + '"'
+         subprocess.call(command, shell=True)
    moveFiles(sourceFileLocation, targetLocation)
 
 

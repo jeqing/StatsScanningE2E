@@ -25,11 +25,14 @@ def checkMarkInFromDB(salesForceConnection, partialQuery, docIdGuidList):
     notFoundDataList = []
     dataWithErrorList = []
     isMarkedIn = False
+    print(docIdGuidList)
     for docIdGuidGuple in docIdGuidList:
-        query = partialQuery + "'" + docIdGuidGuple[0] + "'"
+        query = partialQuery + "'" + docIdGuidGuple[0] + "%" + "'" 
+        print("salesforce query: " + query)
         result = salesForceConnection.query_all(query)
+        print("result: ")
+        print(result)
         if (result == None):
-           
             notFoundDataList.append(docIdGuidGuple)
         else: 
             record = (result['records'])

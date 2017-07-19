@@ -14,7 +14,10 @@ import uuid
 import sys
 from glob import glob
 import datetime
-#import ReplaceDocIds
+import time
+import ReplaceDocIds
+from random import randint
+
 
 # Check if a directory or a file exists
 def checkFileExist(fileType, dataFolder, jSonFile = None ):
@@ -50,7 +53,7 @@ def getLastFolderSuffix(folderList, folderPrefix):
     return iter
 
 
-def replaceGUID(docIdGuidList, currFolder, itemList, sampleDataFolder, testDataFolder, folderPrefix, i_str):
+def replaceGUID(docIdGuidList, currFolder, imageFileList, sampleDataFolder, testDataFolder, folderPrefix, i_str, newDocIDs, origLine, newBatchID):
    
     # For each image
     detailName = currFolder[8:15]
@@ -61,21 +64,46 @@ def replaceGUID(docIdGuidList, currFolder, itemList, sampleDataFolder, testDataF
     detailLine = detailJson.read()
     detailJson.close()             
     
-    for item in itemList:
+    for item in imageFileList:
         # Generate new GUID
         newGuidId = uuid.uuid4()
+        newDocID = None
 
         newName = str(newGuidId) + item[36:]
+        if (item.find('642124311') > -1):
+            newName = str(newGuidId) + "_" + newDocIDs[0] + item[46:]
+            origLine = origLine.replace('642124311', newDocIDs[0])
+            newDocID = newDocIDs[0]
+
+        else:
+            if (item.find('613948850') > -1):
+                newName = str(newGuidId) + "_" + newDocIDs[1] + item[46:]
+                origLine = origLine.replace('613948850', newDocIDs[1])
+                newDocID = newDocIDs[1]
+    
         # Rename the image file
         os.rename(testDataFolder + folderPrefix + i_str + "\\" + item,testDataFolder + folderPrefix + i_str + "\\" + newName)
 
         oldId = item[0:36]
+        
+    
+        # Replace BatchID in the foldr Json file
+        oldBatchID = origLine[11:17]
+        print("oldBatchID: " + oldBatchID)
+        print("newBatchID: " + str(newBatchID))
+        origLine = origLine.replace(oldBatchID, str(newBatchID))
+        
+        # Replace GUID in the folder JSON file
+        newLine = origLine.replace(oldId, str(newGuidId))
+        origLine = newLine        
+
+        
 
         # Replace GUID in the detail JSON file
         startPos = detailLine.find(oldId)
         
         newLine = detailLine.replace(oldId, str(newGuidId))
-
+        detailLine = newLine
 
         submittedPos = newLine.find("\"submitted_date_time\":",startPos)
         if (submittedPos == -1):
@@ -87,43 +115,45 @@ def replaceGUID(docIdGuidList, currFolder, itemList, sampleDataFolder, testDataF
             print ("Error: Validation Status field not found in detail JSON file") 
             sys.exit(1)                
         
-        jsonDateStamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-        print (jsonDateStamp)
+        #jsonDateStamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+        jsonDateStamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M') + ':' + str(randint(10, 59))
         
         newLine = detailLine[0:submittedPos+23] + jsonDateStamp + detailLine[validationPos-2:]
         detailLine = newLine
-        
+        # CK to change doc ids
         docIdPos = detailLine.find("document_id",startPos)
         oldDocId = detailLine[docIdPos+14: docIdPos+23]
-        
-        #detailLine = detailLine.replace(oldDocId, "12345")
-        #detailLine = detailLine.replace("613948850", "12345")
-        
-        
-        oldDocIDs = ["642124311", "613948850"]
-        newDocIDs = ["000", "111"]
-        i = 0
-        while (i < len(oldDocIDs)):
-            detailLine = detailLine.replace(oldDocIDs[i], newDocIDs[i])        
-            docIdGuidList.append((newDocIDs[i], str(newGuidId)))
-            i += 1
-  
-        
               
+        oldDocIDs = ["642124311", "613948850"]
+  
+  
+        #i = 0
+        #print(docIdGuidList)    
+        #while (i < len(oldDocIDs)):
+            #detailLine = detailLine.replace(oldDocIDs[i], newDocIDs[i])   
+            #print("new item to docIdGuidList")
+            #print(newDocIDs[i])
+            #print(str(newGuidId))
+            #docIdGuidList.append((newDocIDs[i], str(newGuidId)))
+            #i += 1
+        
+        docIdGuidList.append((newDocID, str(newGuidId)))
     
-    outputJsonFile = 'UPDATE_'+ detailName + "_" + datetime.datetime.now().strftime('%Y%m%d_%H_%M_%S_214') + '.json'
+    outputJsonFile = 'UPDATE_'+ detailName + "_" + datetime.datetime.now().strftime('%Y%m%d_%H_%M_%S') + '.json'
     finalJson = open(testDataFolder + outputJsonFile,"w")
+    
     finalJson.write(detailLine)
     finalJson.close()       
-        
+ 
     
-    return docIdGuidList        
+    return origLine, docIdGuidList        
 
       
     
     
 def duplicateProcess(numberOfDuplicates, folderList, iter, sampleDataFolder, testDataFolder, folderPrefix):
-   
+    newDocIDs = ReplaceDocIds.replaceDocIDs()
+    
     docIdGuidList = []
     # For number of test duplicates
     for i in range(numberOfDuplicates):
@@ -134,20 +164,39 @@ def duplicateProcess(numberOfDuplicates, folderList, iter, sampleDataFolder, tes
             i_str = str(iter).strip()
             
             # Copy the image folder to the new folder
+            oldBatchID = folderList[j][len(folderList[j])-7: len(folderList[j]) -1]
+            print("old file name: " + sampleDataFolder + folderList[j])
+            print("new file name: " + testDataFolder + folderPrefix + i_str)
             shutil.copytree(sampleDataFolder + folderList[j], testDataFolder + folderPrefix + i_str)
-
+            
+            # Get current test folder removing the trailing folder separator '\'
+            currFolderTmp = folderList[j]
+            currFolder = currFolderTmp[:len(currFolderTmp)-1]            
+            
+            # Read in the folder JSON file
+            json = open(testDataFolder + folderPrefix + i_str +"\\" + folderPrefix + oldBatchID + ".json","r")
+            origLine = json.read()
+            json.close()
+        
+            # Remove the folder JSON file
+            os.remove(testDataFolder + folderPrefix + i_str +"\\" + folderPrefix + oldBatchID + ".json")
             imageFolderList = os.listdir(testDataFolder + folderPrefix + i_str)
-            itemList = []
+            imageFileList = []
                            
             # Find all tif image files in the folder
             for file in imageFolderList:
                 if file.find(".tif") > 0:
-                    itemList.append(file)
+                    imageFileList.append(file)
                     
             currFolder = folderList[j]
             
-            docIdGuidList = replaceGUID(docIdGuidList, currFolder,itemList, sampleDataFolder, testDataFolder, folderPrefix, i_str)
-    
+            origLine, docIdGuidList = replaceGUID(docIdGuidList, currFolder, imageFileList, sampleDataFolder, testDataFolder, folderPrefix, i_str, newDocIDs, origLine, i_str)
+            
+            print("newjson: " + testDataFolder + folderPrefix + i_str + "\\" + folderPrefix + i_str + ".json")
+            newJson = open(testDataFolder + folderPrefix + i_str + "\\" + folderPrefix + i_str + ".json","w")
+            newJson.write(origLine)
+            newJson.close()
+            
     return docIdGuidList
     
     
@@ -170,6 +219,5 @@ def generateTestFiles(sampleDataFolder, testDataFolder, folderPrefix, numberOfDu
     iter = getLastFolderSuffix(folderList, folderPrefix)
     
     docIdGuidList = duplicateProcess(numberOfDuplicates, folderList, iter, sampleDataFolder, testDataFolder, folderPrefix)
-    print(docIdGuidList)
     
     return docIdGuidList
